@@ -71,7 +71,7 @@ function add_new_file_to_svn()
         content=${content}"${file} ${index} on "
         let index++
     done
-    dialog --title "新增文件列表" --backtitle "sample_test" --checklist "列表" 20 100 100\
+    dialog --title "新增文件列表" --backtitle "${backtitle}" --checklist "列表" 20 100 100\
         ${content} 2> ${new_file}
     add_file_list=`cat ${new_file} | xargs echo`
     if [ -z ${add_file_list} ];then
@@ -79,8 +79,7 @@ function add_new_file_to_svn()
     else
         dialog --title "提示" --backtitle "${backtitle}" --no-shadow --yesno "是否确认添加文件到SVN?" 10 50
         if [ $? == 0 ];then
-            #local add_str=`cat ${new_file} | xargs echo` 
-            #svn add ${add_file_list}
+            svn add ${add_file_list}
             echo ${add_file_list}
             ret=0
         else
@@ -113,19 +112,18 @@ function commit_file_to_svn()
         content=${content}"${file} ${index} on "
         let index++
     done
-    dialog --title "新增文件列表" --backtitle "sample_test" --checklist "列表" 20 100 100\
+    dialog --title "变更文件列表" --backtitle "${backtitle}" --checklist "列表" 20 100 100\
         ${content} 2> ${new_file}
     commit_file_list=`cat ${new_file} | xargs echo`
-    if [ -z {commit_file_list} ];then
+    if [ -z ${commit_file_list} ];then
         ret=1
     else
         dialog --title "提示" --backtitle "${backtitle}" --no-shadow --yesno "是否确认提交文件到SVN?" 10 50
         if [ $? == 0 ];then
-            #local commit_str=`cat ${new_file} | xargs echo` 
-            #svn commit ${commit_file_list}
+            svn commit ${commit_file_list}
             ret=0
         else
-            dialog --title "警告" --backtitle "${backtitle}" --msgbox "取消提交文件!" 10 30 
+            dialog --title "警告" --backtitle "${backtitle}" --infobox "取消提交文件!" 10 30 ; sleep 1
             ret=1
         fi
         rm -rf ${new_file}
@@ -138,9 +136,7 @@ backtitle="SVN_COMMIT_EX"
 check_is_svn_dir
 ret=$?
 if [ $ret -eq 0 ];then
-   #echo -e "${RED}${NOW_DIR}目录错误,本目录未包含svn信息!${END}" 
    dialog --title "错误" --backtitle "${backtitle}" --msgbox "目录错误,本目录未包含svn信息!" 10 50
-   #dialog --title "错误" --backtitle "${backtitle}" --infobox "目录错误,本目录未包含svn信息!" 10 50 ; sleep 1 
    dialog --clear
    clear
    exit 1
