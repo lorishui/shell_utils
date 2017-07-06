@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+########################################################################
+#    File Name: SVN_LOG
+# 
+#       Author: 
+#         Mail: shuiheng_40@163.com
+# Created Time: Tue 02 Jun 2015 09:27:30 AM CST
+#  Description: ...
+# 
+########################################################################
+set -u
+
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+BLUE="\033[0;34m"
+YELLOW="\033[0;33m"
+GRAY="\033[0;37m"
+LIGHT_RED="\033[1;31m"
+LIGHT_YELLOW="\033[1;33m"
+LIGHT_GREEN="\033[1;32m"
+LIGHT_BLUE="\033[0;34m"
+LIGHT_GRAY="\033[1;37m"
+END="\033[0;00m"
+
+NOW_DIR=`pwd`
+
+function check_is_svn_dir()
+{
+    local is_svn_dir=`svn info | grep "URL:" | wc -l`
+    if [ $is_svn_dir -eq 0 ];then
+        return 0
+    fi
+    return 1
+}
+
+function get_svn_revision()
+{
+    svn_revistion=`svn info | grep "Last Changed Rev: " | awk '{print $4}'`
+    echo ${svn_revistion}
+}
+
+function print_help()
+{
+    echo -e "${RED}Usage: ${END}"
+    echo -e "\t${YELLOW}SVN_PACKET old_version(不包括) [new_version(包括)] ${END}"
+}
+
+check_is_svn_dir
+ret=$?
+if [ $ret -eq 0 ];then
+   echo -e "${RED}${NOW_DIR}目录错误,本目录未包含svn信息!${END}" 
+   exit 1
+fi
+
+OLD_VERSION=0
+NEW_VERSION=0
+
+SVN_URL=`svn info | grep "^URL: " | awk '{print $2}'`
+if [ $# == 0 ];then
+    print_help
+    exit 0
+elif [ $# == 1 ];then
+    arg1=$1
+    if [ "${arg1}" == "-h" ] || [ "${arg1}" == "-H" ] || [ "${arg1}" == "-help" ]; then
+        print_help
+        exit 0
+    fi
+    OLD_VERSION=${arg1}
+    NEW_VERSION=$(get_svn_revision)
+elif [ $# == 2 ];then
+    OLD_VERSION=$1
+    NEW_VERSION=$2
+    MAX_VERSION=$(get_svn_revision)
+    if [ ${NEW_VERSION} -gt ${MAX_VERSION} ]; then
+        echo -e "${RED}输入版本号错误,NEW_VERSION:${YELLOW}${NEW_VERSION} ${RED}大于 Max_VERSION:${YELLOW}${MAX_VERSION} ${END}"
+        exit 1
+    fi
+fi
+
+if [ ${OLD_VERSION} -gt ${NEW_VERSION} ] ; then
+	echo -e "${RED}输入版本号错误,OLD_VERSION:${YELLOW}${OLD_VERSION} ${RED}大于NEW_VERSION:${YELLOW}${NEW_VERSION} ${END}"
+	exit 1
+fi
+
+WORK_PATH=`pwd`"/version_patch/${OLD_VERSION}_${NEW_VERSION}"
+
+echo -e "${GREEN}开始分析版本差异...${END}"
+DIFF_URL="svn diff -r ${OLD_VERSION}:${NEW_VERSION} --summarize ${SVN_URL}"
+#echo ${DIFF_URL}
+
+if test ! -e "${WORK_PATH}"; then
+	mkdir -p ${WORK_PATH}
+fi
+echo ${DIFF_URL}|sh >${WORK_PATH}_diff.txt
+
+DIFF_NUM=`${DIFF_URL} |wc -l`
+if [ ${DIFF_NUM} -ne 0 ]; then
+	echo -e "${GREEN}差异文件共${YELLOW}${DIFF_NUM} ${GREEN}个${END}"
+    echo -e "${GREEN}准备导出到目录: ${YELLOW}${WORK_PATH}${END}"
+    echo -e "${GREEN}=======================================================${END}"
+	DIFF_LIST=`${DIFF_URL}`
+	NUM=0
+	SKIP=0
+	for FIELD in ${DIFF_LIST} ; do
+		#长度小于3（A、M、D、AM即增加且修改）即是更新标识，否则为url
+		if [ ${#FIELD} -lt 3 ]; then
+			let NUM+=1
+			SKIP=0
+			if [ "${FIELD}" == "D" ]; then
+				#下一个应该跳过
+				SKIP=1
+			fi
+			continue
+		fi
+
+		#若为删除文件则不必导出
+		if [ ${SKIP} -eq 1 ]; then
+			echo ${NUM}.'是删除操作,跳过:'${FIELD}
+			continue
+		fi
+
+		#替换得到相对路径
+		DIFF_FILE=${FIELD//${SVN_URL}/}
+		
+		FILE_NAME=`basename ${DIFF_FILE}`
+		FOLDER_NAME=`dirname ${DIFF_FILE}`
+		FOLDER_PATH="${WORK_PATH}${FOLDER_NAME}"
+		
+		if test ! -e "${FOLDER_PATH}"; then
+			mkdir -p ${FOLDER_PATH}
+		fi
+	
+		CMD="svn export --force -r ${NEW_VERSION} ${SVN_URL}${DIFF_FILE} ${FOLDER_PATH}/${FILE_NAME}"
+		echo ${CMD}|sh > /dev/null
+		echo -e "${GREEN}${NUM}. ${YELLOW}${DIFF_FILE} ${GREEN} 导出完成${END}"
+	done
+	echo -e "${GREEN}打包完成${END}"
+else
+	echo -e "${GREEN}版本间没有差异${END}"
+fi
+
+exit 0

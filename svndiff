@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+########################################################################
+#    File Name: svndiff.sh
+# 
+#       Author: lingren Shanghai,Inc.
+#         Mail: shuiheng_40@163.com
+# Created Time: 2016年04月21日 星期四 16时46分14秒
+#  Description: ...
+# 
+########################################################################
+
+DIFF="vimdiff"
+
+LEFT=${6}
+RIGHT=${7}
+
+$DIFF $LEFT $RIGHT

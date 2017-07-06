@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+########################################################################
+#    File Name: SVN_LOG
+# 
+#       Author: 
+#         Mail: shuiheng_40@163.com
+# Created Time: Tue 02 Jun 2015 09:27:30 AM CST
+#  Description: ...
+# 
+########################################################################
+set -u
+
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+BLUE="\033[0;34m"
+YELLOW="\033[0;33m"
+GRAY="\033[0;37m"
+LIGHT_RED="\033[1;31m"
+LIGHT_YELLOW="\033[1;33m"
+LIGHT_GREEN="\033[1;32m"
+LIGHT_BLUE="\033[0;34m"
+LIGHT_GRAY="\033[1;37m"
+END="\033[0;00m"
+
+NOW_DIR=`pwd`
+
+function check_is_svn_dir()
+{
+    local is_svn_dir=`svn info | grep "URL:" | wc -l`
+    if [ $is_svn_dir -eq 0 ];then
+        return 0
+    fi
+    return 1
+}
+
+function check_is_has_new_file()
+{
+    local new_file_list=`svn status | grep ^? | awk '{print $2}'`
+    if [ ${#new_file_list} -gt 0 ];then
+        return 1
+    fi
+    return 0
+}
+
+function get_svn_revision()
+{
+    svn_revistion=`svn info | grep "Last Changed Rev: " | awk '{print $4}'`
+    echo ${svn_revistion}
+}
+
+function show_svn_log()
+{
+    local svn_revistion=$1
+    echo -e "${GREEN}SVN版本号:${YELLOW}${svn_revistion} ${END}"
+    svn log -r${svn_revistion} -v
+}
+
+check_is_svn_dir
+ret=$?
+if [ $ret -eq 0 ];then
+   echo -e "${RED}${NOW_DIR}目录错误,本目录未包含svn信息!${END}" 
+   exit 1
+fi
+
+if [ $# == 0 ];then
+    svn_revistion=$(get_svn_revision)
+    show_svn_log ${svn_revistion}
+else
+    arg1=$1
+    if [ "${arg1}" == "-h" ] || [ "${arg1}" == "-H" ] || [ "${arg1}" == "-help" ]; then
+        echo -e "${RED}Usage: ${END}"
+        echo -e "\t${YELLOW}SVN_LOG [svn_revistion] ${END}"
+        exit 0
+    fi
+    show_svn_log ${arg1}
+fi
+
+exit 0

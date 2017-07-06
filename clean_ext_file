@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+########################################################################
+#    File Name: clean_ext
+# 
+#       Author: Shootao Shanghai,Inc.
+#         Mail: lorishui@shootao.com
+# Created Time: Thu 07 Jan 2016 03:14:12 PM CST
+#  Description: ...
+# 
+########################################################################
+
+cd `dirname $0`
+
+function delete_the_file()
+{
+    the_file=$1
+    the_ext=$2
+    ext=${the_file##*.}
+    if [ "$the_ext" = "${ext}" ];then
+        rm -rf $the_file
+        if [ $? ];then
+            echo "remove OK:" $the_file
+        else
+            echo "remove FAILED:" $the_file
+        fi
+    fi
+}
+
+function clean_ext_file()
+{
+    the_ext=$1
+    for d in `ls .`;do
+        if [ -d "$d" ];then
+            pushd "$PWD" 1>/dev/null
+            cd $d
+            clean_ext_file ${the_ext}
+            popd 1>/dev/null
+        else
+            if [ -f "$d" ];then
+                delete_the_file $d $the_ext
+            fi
+        fi
+    done
+}
+
+if [ "$#" = "1" ];then
+    clean_ext_file $1
+else
+    pname=`basename $0`
+    echo -e "Usage:\n\t${pname} file_ext_name"
+fi

@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+########################################################################
+#    File Name: mygrep.sh
+# 
+#       Author: Shootao Shanghai,Inc.
+#         Mail: aceway@shootao.com
+# Created Time: Thu 08 Jan 2015 04:01:45 AM EST
+#  Description: ...
+# 
+########################################################################
+
+if [ $# -eq 1 ];then
+    word=$1
+    cd `pwd`
+    grep -rn --color=auto "${word}" * -R --exclude-dir={.git,.svn,doc,docs,document,documents,CMakeFiles,cmake} --exclude={tags,*.pyc,*.pb,*.bak,*pb2.py,*.pb.h,*.pb.cc}
+elif [ $# -eq 2 ] && [ "$1" = "-w" ] ;then
+    word=$2
+    cd `pwd`
+    grep -rnw --color=auto "${word}" * -R --exclude-dir={.git,.svn,doc,docs,document,documents,CMakeFiles,cmake} --exclude={tags,*.pyc,*.pb,*.bak,*pb2.py,*.pb.h,*.pb.cc}
+else
+    echo -e "Usage:" 
+    echo -e "\tmygrep  string" 
+    echo -e "\tmygrep -w word" 
+fi
